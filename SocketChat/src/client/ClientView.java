@@ -2,14 +2,18 @@ package client;
 
 import java.util.regex.Pattern;
 
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
+import javafx.event.Event;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
+import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.SplitPane;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
@@ -19,9 +23,11 @@ import server.Room;
 
 public class ClientView {
 	private Stage stage;
-	private Scene home, lobby, room;
+	private Scene homeScene, lobbyScene, roomScene;
 	private GridPane lobbyGrid;
+	private Pane messagesPane, sendMessagePane;
 	private ServerInterface serverInterface;
+	private MessageReceiverThread messageReceiverThread;
 	
 	private final int lobbyRoomSquareSide = 100;
 	private static final String IP_REGEX = "^([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\.([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\." +
@@ -31,23 +37,69 @@ public class ClientView {
 		this.stage = stage;		
 		
 		// Home scene
-	    home = createHomeScene(stage);
+	    homeScene = createHomeScene();
 	    
 	    // Lobby scene
-	    lobby = createLobbyScene();	    
+	    lobbyScene = createLobbyScene();	   
 	    
-	    // Room scene
-
-		stage.setScene(home);
+		stage.setScene(homeScene);
 		stage.show();	
+	}
+	
+	private Scene createRoomScene(Room room) {
+		Rectangle2D screenBounds = Screen.getPrimary().getVisualBounds();
+		
+		Pane roomPane = new Pane();
+		
+		messagesPane = new Pane();
+		
+		Label titleLabel = new Label(room.getName());
+		titleLabel.setPrefSize(screenBounds.getWidth(), 40);
+		titleLabel.setAlignment(Pos.CENTER);
+		
+		sendMessagePane = new Pane();
+		
+		TextField messageTextField = new TextField();
+		messageTextField.setPrefSize(screenBounds.getWidth() - 150, 40);
+		
+		Button sendMessageButton = new Button("Send");
+		sendMessageButton.setPrefSize(100, 40);
+		sendMessageButton.setLayoutX(screenBounds.getWidth() - 100);
+		sendMessageButton.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent e) {
+				serverInterface.sendMessage(messageTextField.getText());
+			}			
+		});
+		
+		sendMessagePane.getChildren().addAll(messageTextField, sendMessageButton);
+	    
+		roomPane.getChildren().addAll(messagesPane, sendMessagePane);
+		
+		messageReceiverThread = new MessageReceiverThread(this, serverInterface); 
+		new Thread(messageReceiverThread).start();
+		
+	    return new Scene(roomPane);
 	}
 
 	private Scene createLobbyScene() {
 		Pane lobbyPane = new Pane();
+		
+		Button createRoomButton = new Button("Create Room");
+		createRoomButton.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent e) {
+				Room room = serverInterface.createRoom("Titolo");
+				roomScene = createRoomScene(room);
+				stage.setScene(roomScene);
+				stage.show();
+			}			
+		});
 	    
 	    lobbyGrid = new GridPane();
+	    lobbyGrid.setLayoutY(60);
 	    
-	    lobbyPane.getChildren().addAll(lobbyGrid);
+	    lobbyPane.getChildren().addAll(lobbyGrid, createRoomButton);
 	    return new Scene(lobbyPane);
 	}
 
@@ -78,6 +130,16 @@ public class ClientView {
 		    	button.setAlignment(Pos.CENTER);
 		    	button.setLayoutX(5);
 		    	button.setLayoutY(40);
+		    	button.setOnAction(new EventHandler<ActionEvent>() {
+					@Override
+					public void handle(ActionEvent e) {
+						Room joinedRoom = serverInterface.joinRoom(room.getID() + "");
+						roomScene = createRoomScene(joinedRoom);
+						stage.setScene(roomScene);
+						stage.show();
+					}
+		    		
+		    	});
 		    	roomPane.getChildren().add(button);
 		    	
 		    	roomPane.setStyle("-fx-border-color: black;-fx-border-width: 2;");
@@ -87,7 +149,7 @@ public class ClientView {
 	    }
 	}
 
-	private Scene createHomeScene(Stage stage) {
+	private Scene createHomeScene() {
 		Pane homePane = new Pane();
 	    homePane.setPrefSize(300, 300);
 	    
@@ -123,7 +185,7 @@ public class ClientView {
 				if(!portTextField.getText().equals("") && Pattern.compile(IP_REGEX).matcher(ipTextField.getText()).matches()){
 					serverInterface = new ServerInterface(ipTextField.getText(), portNumber);
 					fillLobbyGrid();
-					stage.setScene(lobby);
+					stage.setScene(lobbyScene);
 					stage.centerOnScreen();
 					stage.show();
 				}
@@ -131,19 +193,40 @@ public class ClientView {
 	    });
 	    
 	    homePane.getChildren().addAll(usernameTextField, ipTextField, portTextField, okButton);
-	    home = new Scene(homePane);
-		return home;
+	    homeScene = new Scene(homePane);
+		return homeScene;
+	}
+	
+	public void displayMessage(String messageText) {
+		Platform.runLater(new Runnable() {
+			@Override
+			public void run() {
+				Label messageLabel = new Label(messageText);
+				messageLabel.setLayoutY(messagesPane.getHeight());
+				messagesPane.getChildren().add(messageLabel);	
+				sendMessagePane.setLayoutY(messagesPane.getHeight() + 50);;
+				stage.sizeToScene();
+				stage.show();
+			}			
+		});
 	}
 	
 	public Scene getHome(){
-		return home;
+		return homeScene;
 	}
 	
 	public Scene getLobby() {
-		return lobby;
+		return lobbyScene;
 	}
 	
 	public Scene getRoom() {
-		return room;
+		return roomScene;
+	}
+	
+	public void stop() {
+		if(serverInterface != null)
+			serverInterface.stop();
+		if(messageReceiverThread != null)
+			messageReceiverThread.stop();
 	}
 }

@@ -16,10 +16,28 @@ public class Room implements Serializable {
 	}
 	
 	public void addMember(ClientHandler member) {
-		
+		if(!hasMember(member))
+			members.add(member);
 	}
 	
 	public String getName() {
 		return name;
+	}
+	
+	public int getID() {
+		return ID;
+	}
+	
+	public boolean hasMember(ClientHandler member) {
+		return members.contains(member);
+	}
+	
+	public void removeMember(ClientHandler member) {
+		members.remove(member);
+	}
+	
+	public void sendMessage(String messageText) {
+		for(ClientHandler member : members)
+			member.sendMessage(messageText, false);
 	}
 }
