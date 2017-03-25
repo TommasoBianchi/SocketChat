@@ -7,6 +7,8 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 public class Server {
+	
+	private static ServerData serverData;
 
 	public static void main(String[] args) {	
 		ServerSocket serverSocket;
@@ -19,6 +21,8 @@ public class Server {
 		}
 		
 		System.out.println("Server ready on port " + serverSocket.getLocalPort());
+		
+		serverData = new ServerData();
 		
 		Executor executor = Executors.newCachedThreadPool();
 		
@@ -33,7 +37,7 @@ public class Server {
 			
 			System.out.println("Client " + clientSocket.getInetAddress().getHostAddress() + " connected");
 			
-			executor.execute(new ClientHandler(clientSocket));
+			executor.execute(new ClientHandler(clientSocket, serverData));
 		}
 	}
 }
