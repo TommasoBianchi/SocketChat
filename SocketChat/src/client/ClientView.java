@@ -182,8 +182,8 @@ public class ClientView {
 					return;
 				}
 				
-				if(!portTextField.getText().equals("") && Pattern.compile(IP_REGEX).matcher(ipTextField.getText()).matches()){
-					serverInterface = new ServerInterface(ipTextField.getText(), portNumber);
+				if(!usernameTextField.getText().equals("") && Pattern.compile(IP_REGEX).matcher(ipTextField.getText()).matches()){
+					serverInterface = new ServerInterface(ipTextField.getText(), portNumber, usernameTextField.getText());
 					fillLobbyGrid();
 					stage.setScene(lobbyScene);
 					stage.centerOnScreen();
@@ -197,11 +197,11 @@ public class ClientView {
 		return homeScene;
 	}
 	
-	public void displayMessage(String messageText) {
+	public void displayMessage(String messageText, String senderName) {
 		Platform.runLater(new Runnable() {
 			@Override
 			public void run() {
-				Label messageLabel = new Label(messageText);
+				Label messageLabel = new Label("[" + senderName + "]: " + messageText);
 				messageLabel.setLayoutY(messagesPane.getHeight());
 				messagesPane.getChildren().add(messageLabel);	
 				sendMessagePane.setLayoutY(messagesPane.getHeight() + 50);;

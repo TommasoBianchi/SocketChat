@@ -49,7 +49,7 @@ public class ClientHandler implements Runnable {
 					run = false;
 					break;
 				case TEXT_MESSAGE:
-					sendMessage(message.getText(), true);
+					sendMessage(message.getText(), message.getSenderName(), true);
 					break;
 			}
 		}
@@ -115,15 +115,17 @@ public class ClientHandler implements Runnable {
 		currentRoom = room;
 	}
 	
-	public void sendMessage(String messageText, boolean fromClient) {
+	public void sendMessage(String messageText, String senderName, boolean fromClient) {
 		if(currentRoom == null)
 			System.err.println("Trying to send a message while not in a room");
 		else {
-			if(fromClient)
-				currentRoom.sendMessage(messageText);
+			if(fromClient) {
+				currentRoom.sendMessage(messageText, senderName);
+				System.out.println(senderName + " wrote " + messageText);
+			}
 			else {
 				try {
-					outStream.writeObject(new Message(messageText, MessageType.TEXT_MESSAGE));
+					outStream.writeObject(new Message(messageText, MessageType.TEXT_MESSAGE, senderName));
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();

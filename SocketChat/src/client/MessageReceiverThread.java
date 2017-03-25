@@ -22,7 +22,8 @@ public class MessageReceiverThread implements Runnable {
 	public void run() {
 		while(run) {
 			Message message = serverInterface.getTextMessage();
-			clientView.displayMessage(message.getText());
+			if(run)
+				clientView.displayMessage(message.getText(), message.getSenderName());
 		}
 	}
 	

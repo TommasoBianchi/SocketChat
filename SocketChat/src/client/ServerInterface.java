@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.net.SocketException;
 
 import server.Message;
 import server.MessageType;
@@ -15,8 +16,11 @@ public class ServerInterface {
 	private ObjectOutputStream outStream;
 	private ObjectInputStream inStream;
 	private Room currentRoom;
+	private String username;
 	
-	public ServerInterface(String ip, int portNumber) {
+	public ServerInterface(String ip, int portNumber, String username) {
+		this.username = username;
+		
 		try {
 			socket = new Socket(ip, portNumber);
 		} catch (IOException e) {
@@ -38,6 +42,9 @@ public class ServerInterface {
 	public Message getTextMessage() {
 		try {
 			return (Message)inStream.readObject();
+		} catch (SocketException e) { 
+			// I've probably closed the client and thus also the socket
+			return null;
 		} catch (ClassNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -73,7 +80,7 @@ public class ServerInterface {
 	
 	public synchronized Room createRoom(String title) {
 		try {
-			outStream.writeObject(new Message(title, MessageType.CREATE_ROOM));
+			outStream.writeObject(new Message(title, MessageType.CREATE_ROOM, username));
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -96,7 +103,7 @@ public class ServerInterface {
 	
 	public synchronized Room joinRoom(String roomID) {
 		try {
-			outStream.writeObject(new Message(roomID, MessageType.JOIN_ROOM));
+			outStream.writeObject(new Message(roomID, MessageType.JOIN_ROOM, username));
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -122,7 +129,7 @@ public class ServerInterface {
 			System.err.println("Trying to send a message while not in a room");
 		else {
 			try {
-				outStream.writeObject(new Message(text, MessageType.TEXT_MESSAGE));
+				outStream.writeObject(new Message(text, MessageType.TEXT_MESSAGE, username));
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();

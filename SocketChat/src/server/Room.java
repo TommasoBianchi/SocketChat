@@ -36,8 +36,8 @@ public class Room implements Serializable {
 		members.remove(member);
 	}
 	
-	public void sendMessage(String messageText) {
+	public void sendMessage(String messageText, String senderName) {
 		for(ClientHandler member : members)
-			member.sendMessage(messageText, false);
+			member.sendMessage(messageText, senderName, false);
 	}
 }
